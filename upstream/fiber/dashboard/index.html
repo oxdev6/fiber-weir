@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f4f7f6">
+  <title>Fiber Weir | Conditional payment stream</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .brand-mark { display: grid; place-items: center; padding: 4px; overflow: hidden; }
+    .brand-mark svg { width: 25px; height: 25px; overflow: visible; }
+    .logo-water { fill: none; stroke: #4dbbb0; stroke-linecap: round; stroke-width: 2; }
+    .logo-weir { fill: none; stroke: #168f87; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2.5; }
+    .logo-base { fill: none; stroke: #126f6a; stroke-linecap: round; stroke-width: 2; }
+    .status-dot.offline { background: #aab7b6; box-shadow: 0 0 0 3px #edf1f0; }
+    .status-dot.online { background: #168f87; box-shadow: 0 0 0 3px #def4f0; }
+    .empty-state { min-height: 260px; display: grid; place-content: center; justify-items: center; gap: 9px; text-align: center; padding: 28px; }
+    .empty-state.compact { min-height: 205px; }
+    .empty-icon { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px; background: #e5f4f1; color: #168f87; font-size: 22px; }
+    .empty-state h2 { margin: 3px 0 0; font-size: 14px; }
+    .empty-state p { max-width: 300px; margin: 0; color: #95a3a4; font-size: 9px; line-height: 1.55; }
+    .account-wrap { position: relative; }
+    .account-menu { position: absolute; z-index: 8; top: calc(100% + 12px); right: 0; width: 224px; padding: 8px; border: 1px solid #dfe9e6; border-radius: 10px; background: #fff; box-shadow: 0 18px 45px rgba(25, 45, 45, .15); }
+    .account-menu[hidden] { display: none; }
+    .account-identity { display: flex; align-items: center; gap: 9px; padding: 9px; border-bottom: 1px solid #edf1f0; margin-bottom: 6px; }
+    .account-identity b, .account-identity small { display: block; }
+    .account-identity b { font-size: 10px; }.account-identity small { color: #9ba7a8; font-size: 8px; margin-top: 3px; }
+    .account-action { width: 100%; display: flex; align-items: center; gap: 9px; padding: 9px; border: 0; border-radius: 6px; background: transparent; color: #66777a; text-align: left; font-size: 9px; font-weight: 700; }
+    .account-action:hover { background: #f2f8f6; color: #168f87; }.account-action.danger:hover { background: #fff5f3; color: #c75c53; }
+    @media (max-width: 700px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .stream-modal { padding: 18px; }
+      .modal-actions .button { flex: 1; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand"><div class="brand-mark" aria-label="Fiber Weir logo"><svg viewBox="0 0 32 32" role="img" aria-hidden="true"><path class="logo-water" d="M4 8c3 0 3 3 6 3s3-3 6-3 3 3 6 3 3-3 6-3"/><path class="logo-weir" d="M5 15h4v10h4V15h4v10h4V15h4v10h3"/><path class="logo-base" d="M4 27h24"/></svg></div><div><strong>Fiber Weir</strong><small>conditional payments</small></div></div>
+      <div class="workspace-label">Protocol workspace</div>
+      <button class="workspace-switcher" id="workspaceSwitcher" type="button"><span class="status-dot offline" id="workspaceStatus"></span><span><b id="workspaceName">No node connected</b><small id="workspaceMessage">Connect Fiber RPC to continue</small></span><span class="chevron">⌄</span></button>
+      <nav class="nav-list" aria-label="Protocol navigation">
+        <a class="nav-item active" href="#stream"><span class="nav-icon">◈</span>Active stream</a>
+        <a class="nav-item" href="#condition"><span class="nav-icon">⌁</span>Condition proof</a>
+        <a class="nav-item" href="#events"><span class="nav-icon">◷</span>Settlement events</a>
+        <a class="nav-item" href="#contract"><span class="nav-icon">◇</span>Contract boundary</a>
+      </nav>
+      <div class="sidebar-bottom"><div class="node-card"><div class="node-card-top"><span class="status-dot offline" id="nodeStatus"></span><span id="nodeStatusText">Node disconnected</span></div><div class="node-id" id="nodeId">No RPC endpoint configured</div><div class="node-meta"><span>Fiber Weir v0.1</span><span>•</span><span id="nodeMeta">Awaiting connection</span></div></div><div class="profile"><div class="avatar">AM</div><div><b>Alex Morgan</b><small>Protocol operator</small></div><span class="more">•••</span></div></div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar"><button class="mobile-menu" id="mobileMenu" aria-label="Open navigation">☰</button><div class="breadcrumbs"><span>Fiber Weir</span><b>/</b><strong>Conditional stream</strong></div><div class="topbar-actions"><div class="sync-state"><span class="pulse" id="syncPulse"></span><span id="syncText">Node disconnected</span> <span class="sync-time" id="syncTime">Connect to sync</span></div><button class="icon-button" type="button" aria-label="Protocol alerts">♢<span class="notification-dot"></span></button><div class="account-wrap"><button class="avatar avatar-small" id="accountButton" type="button" aria-label="Open account menu" aria-expanded="false">AM</button><div class="account-menu" id="accountMenu" hidden><div class="account-identity"><div class="avatar">AM</div><div><b>Alex Morgan</b><small>Protocol operator</small></div></div><button class="account-action" type="button" data-account-action="settings"><span>⚙</span> Account settings</button><button class="account-action" type="button" data-account-action="switch"><span>⇄</span> Switch operator</button><button class="account-action danger" type="button" data-account-action="logout"><span>↪</span> Log out</button></div></div></div></header>
+
+      <div class="page-content" id="stream">
+        <section class="hero-heading"><div><div class="eyebrow"><span class="eyebrow-dot"></span>Programmable conditional payment</div><h1>Release funds only while<br><em>the condition is true.</em></h1><p>A direct two-party payment stream secured by a verifiable CKB predicate.</p></div><div class="hero-actions"><button class="button primary" id="connectButton"><span>↗</span> Connect Fiber node</button></div></section>
+
+        <section class="stream-banner disconnected" aria-live="polite"><div class="banner-status"><span class="status-orb" id="statusOrb"></span><div><span class="banner-kicker">Node status</span><strong id="streamStatus">NOT CONNECTED</strong><small id="streamMessage">Connect a Fiber node to load live conditional payment streams.</small></div></div><div class="banner-meta"><div><span>Active streams</span><b>—</b></div><div><span>Chain height</span><b>—</b></div><div><span>Verifier</span><b>—</b></div></div></section>
+
+        <section class="metric-grid" aria-label="Conditional payment summary"><article class="metric-card"><div class="metric-top"><span>Total escrow</span><span class="metric-icon lock">▣</span></div><strong id="escrowAmount">—</strong><p>Live data appears after node connection</p></article><article class="metric-card"><div class="metric-top"><span>Released</span><span class="metric-icon teal">↗</span></div><strong id="releasedAmount">—</strong><p><span class="positive" id="releaseCount">No active stream</span></p></article><article class="metric-card"><div class="metric-top"><span>Condition</span><span class="metric-icon blue">⌁</span></div><strong class="condition-value" id="conditionState">UNKNOWN</strong><p id="conditionBlock">No verifier connected</p></article><article class="metric-card"><div class="metric-top"><span>Remaining</span><span class="metric-icon orange">↩</span></div><strong id="remainingAmount">—</strong><p>Refund data unavailable</p></article></section>
+
+        <section class="main-grid"><article class="panel stream-panel"><div class="panel-heading"><div><div class="section-label">Payment stream</div><h2>Installment release schedule</h2><p>Each release requires a new, later verified condition observation.</p></div><span class="chain-pill"><i></i>CKB predicate</span></div><div class="parties"><div class="party"><span class="party-avatar payer">A</span><div><small>Payer</small><b>Atlas Node</b><code>02f4...c91a</code></div></div><div class="route-line"><span>8 installments</span><i>→</i></div><div class="party"><span class="party-avatar payee">N</span><div><small>Payee</small><b>Northstar Labs</b><code>03bd...1a20</code></div></div></div><div class="progress-area"><div class="progress-head"><span>Stream progress</span><b><span id="progressPercent">38</span>% released</b></div><div class="progress-track"><span id="progressBar" style="width:38%"></span></div><div class="installments" id="installments"><span class="released">01</span><span class="released">02</span><span class="released">03</span><span class="current">04</span><span>05</span><span>06</span><span>07</span><span>08</span></div></div><div class="guardrail"><span class="guardrail-icon">!</span><div><b>Automatic safety rule</b><p>If the condition fails or no newer proof arrives before expiry, the stream halts and the remaining <strong id="guardrailAmount">50.00 CKB</strong> is refunded to Atlas Node.</p></div></div></article>
+
+          <article class="panel condition-panel" id="condition"><div class="panel-heading"><div><div class="section-label">On-chain condition</div><h2>Predicate verification</h2><p>The release gate for this stream.</p></div><span class="verified-badge" id="verifiedBadge"><i></i> Verified</span></div><div class="predicate-box"><div class="predicate-row"><span>Script hash</span><code>0x9c7f...d31a</code><button class="copy-button" type="button" data-copy="0x9c7f...d31a" aria-label="Copy script hash">▣</button></div><div class="predicate-row"><span>Script args</span><code>0x7e4a...91c2</code><button class="copy-button" type="button" data-copy="0x7e4a...91c2" aria-label="Copy script args">▣</button></div><div class="predicate-row"><span>Commitment</span><code>0x4d12...a08f</code><button class="copy-button" type="button" data-copy="0x4d12...a08f" aria-label="Copy commitment">▣</button></div></div><div class="proof-checks"><div><span class="check done">✓</span><span>Transaction included</span><b>8,421,306</b></div><div><span class="check done">✓</span><span>Predicate matches</span><b>exact match</b></div><div><span class="check done">✓</span><span>Confirmation depth</span><b>12 blocks</b></div></div><div class="condition-note" id="conditionNote"><span>⌁</span><p>Every installment consumes a unique, newer proof block. Replayed observations are rejected.</p></div><button class="failure-button" id="failureButton" type="button"><span>!</span> Simulate condition failure</button></article></section>
+
+        <section class="lower-grid"><article class="panel events-panel" id="events"><div class="panel-heading"><div><div class="section-label">Audit trail</div><h2>Settlement events</h2><p>Immutable stream activity from both parties.</p></div><span class="event-count" id="eventCount">04 events</span></div><div class="timeline" id="timeline"><div class="timeline-item"><span class="timeline-dot success"></span><div><b>Installment 03 released</b><p>10.00 CKB · proof at block 8,421,306</p></div><time>12 sec ago</time></div><div class="timeline-item"><span class="timeline-dot success"></span><div><b>Installment 02 released</b><p>10.00 CKB · proof at block 8,421,294</p></div><time>2 min ago</time></div><div class="timeline-item"><span class="timeline-dot success"></span><div><b>Installment 01 released</b><p>10.00 CKB · proof at block 8,421,281</p></div><time>5 min ago</time></div><div class="timeline-item"><span class="timeline-dot neutral"></span><div><b>Stream funded</b><p>80.00 CKB escrow · commitment confirmed</p></div><time>8 min ago</time></div></div></article><article class="panel contract-panel" id="contract"><div class="panel-heading"><div><div class="section-label">Protocol boundary</div><h2>Contract enforcement</h2><p>What is verified on-chain versus locally observed.</p></div></div><div class="boundary-list"><div><span class="boundary-icon onchain">◆</span><span><b>On-chain guarantee</b><small>Predicate commitment and settlement witness</small></span><strong class="boundary-state">READY</strong></div><div><span class="boundary-icon node">⌁</span><span><b>Fiber verifier</b><small>Checks inclusion, match, and freshness</small></span><strong class="boundary-state">ONLINE</strong></div><div><span class="boundary-icon refund">↩</span><span><b>Refund path</b><small>Timeout returns all unreleased funds</small></span><strong class="boundary-state">ARMED</strong></div></div><div class="contract-foot"><span class="status-dot"></span><span>Force-close safe settlement path enabled</span></div></article></section>
+        <footer class="footer"><span><b>Fiber Weir</b> · conditional payment protocol</span><span>Awaiting Fiber node connection · <a href="../docs/fiber-cond.md">Protocol notes →</a></span></footer>
+      </div>
+    </main>
+  </div>
+  <div class="modal-backdrop" id="streamModal" hidden><section class="stream-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modal-heading"><div><div class="section-label">New protocol instance</div><h2 id="modalTitle">Create conditional stream</h2><p>Escrow funds between two parties behind a CKB predicate.</p></div><button class="modal-close" id="closeModal" type="button" aria-label="Close">×</button></div><form id="streamForm"><div class="form-grid"><label>Payer<input name="payer" value="Atlas Node" required></label><label>Payee<input name="payee" placeholder="e.g. Northstar Labs" required></label><label>Installment amount<input name="amount" type="number" min="0.00000001" step="0.00000001" value="10" required><small>CKB per release</small></label><label>Installment count<input name="count" type="number" min="1" max="8" value="8" required><small>1–8 releases in this demo</small></label></div><label>Predicate script hash<input name="scriptHash" value="0x9c7f...d31a" required><small>Deployed CKB lock/type script identifier</small></label><label>Predicate script args<input name="scriptArgs" placeholder="0x..." required><small>Arguments that identify the condition instance</small></label><div class="form-summary"><span><b>Total escrow</b><strong id="formTotal">80.00 CKB</strong></span><span><b>Refund rule</b><strong>After expiry</strong></span></div><div class="modal-actions"><button class="button secondary" id="cancelModal" type="button">Cancel</button><button class="button primary" type="submit"><span>◇</span> Create escrow stream</button></div></form></section></div><div class="toast" id="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>
